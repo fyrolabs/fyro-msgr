@@ -1,0 +1,4 @@
+/.vscode
+/cmd/sandbox
+/previews/*
+!/previews/.keep
