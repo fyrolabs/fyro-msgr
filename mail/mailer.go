@@ -139,12 +139,29 @@ func (mailer *Mailer) BuildHTMLMessage(
 	templates := []string{}
 
 	for _, tmplName := range kind.Templates {
-		templates = append(
-			templates, filepath.Join(
-				mailer.TemplatesDir, locale, tmplName+".html.tmpl",
-			),
+		useLocaleTmpl := true
+
+		tmplFile := filepath.Join(
+			mailer.TemplatesDir, locale, tmplName+".html.tmpl",
 		)
+
+		_, err := os.Stat(tmplFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return "", err
+			}
+			useLocaleTmpl = false
+		}
+
+		if !useLocaleTmpl {
+			tmplFile = filepath.Join(
+				mailer.TemplatesDir, tmplName+".html.tmpl",
+			)
+		}
+
+		templates = append(templates, tmplFile)
 	}
+
 	tmpl := template.Must(template.ParseFiles(templates...))
 
 	var buffer bytes.Buffer
