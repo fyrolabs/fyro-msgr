@@ -1,0 +1,2 @@
+subject: Hello, {{ .Name }}!
+greeting: Welcome, {{ . }}!

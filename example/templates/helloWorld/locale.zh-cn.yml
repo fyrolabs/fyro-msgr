@@ -1,0 +1,2 @@
+subject: 你好，{{ .Name }}！
+greeting: 欢迎, {{ . }}!
