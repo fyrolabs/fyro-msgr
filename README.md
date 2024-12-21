@@ -1,32 +1,38 @@
-# Fyro Mailer
+# Fyro Messenger
 
 ## Configuration
 ```go
-type NewMailerOpts struct {
+type ClientOpts struct {
 	// Path to email layout, locales, and templates
-	TemplatesDir  string
+	TemplatesRoot string
 	DefaultFrom   string
-	Provider      Provider
+	MailProvider  provider.MailProvider
+	SMSProvider   provider.SMSProvider
 	DefaultLocale string
 	// Dynamic data to be used in the layout
-	LayoutData MailData
+	LayoutData MessageData
 }
 ```
 
-## Letters
-Each letter has its own templates and locales.
+Create a client instance using:
+```go
+msgr.NewClient(ClientOpts{})
+```
+
+## Messages
+Each message has its own templates and locales.
 
 ```go
-type RegisterLetterOpts struct {
-	Name           string // must be unique and match folder name
-	ExtraTemplates []string // index.html.tmpl is included, define extras here
+type AddMessageOpts struct {
+	Name            string           // Must be unique
+	MailChannelOpts *MailChannelOpts // Email channel options
 }
 ```
 
- Register added letters using:
+ Register messages using:
 
 ```go
-mailer.RegisterLetter(RegisterLetterOpts{})
+mailer.AddMessage(AddMessageOpts{})
 ```
 
 ## Templates
@@ -34,20 +40,22 @@ File structure should be as follows:
 
 ```
 templates
-  layout.html.tmpl // Root layout
+  layout_mail.html.tmpl // Root layout
+	layout_sms.html.tmpl // Root layout
   locale.en.yml
   locale.zh-cn.yml
   [entryName]/
+    index_mail.html.tmpl
+		index_mail.text.tmpl
+		index_sms.text.tmpl
     locale.en.yml
     locale.zh-cn.yml
-    index.html.tmpl
-    additional.html.tmpl
 ```
 
 Locale files should be named locale.[lang].yml
 
 ### Subject
-Letter locale files must include a mandatory subject message entry, this is templated using data passed in.
+Message locale files must include a mandatory subject message entry, this is templated using data passed in.
 
 ```yaml
 # YAML
@@ -57,16 +65,14 @@ subject: Hello {{ .Name }}
 ## Sending
 ```go
 type SendOpts struct {
-	LetterName string
-	Data       MailData `json:"data"`
-	To         string
-	From       string
-	ReplyTo    string
-	Subject    string // Leave blank to use subject from template
-	Locale     string // Leave blank for default
+	MessageName string
+	MailTo      string // If MailTo is defined, it will send email
+	SMSTo       string // If SMSTo is defined, it will send SMS
+	Data        MessageData
+	Locale      string
 }
 ```
 
 ## Example
 
-Check test/preview.go for a working example
+Check example/preview.go for a working example

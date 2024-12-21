@@ -68,8 +68,8 @@ func NewClient(opts ClientOpts) (*Messenger, error) {
 }
 
 type AddMessageOpts struct {
-	Name            string
-	MailChannelOpts *MailChannelOpts
+	Name            string           // Must be unique
+	MailChannelOpts *MailChannelOpts // Email channel options
 }
 
 func (msgr *Messenger) AddMessage(opts AddMessageOpts) error {
@@ -98,8 +98,8 @@ func (msgr *Messenger) getMessage(name string) (*Message, error) {
 
 type SendOpts struct {
 	MessageName string
-	MailTo      string
-	SMSTo       string
+	MailTo      string // If MailTo is defined, it will send email
+	SMSTo       string // If SMSTo is defined, it will send SMS
 	Data        MessageData
 	Locale      string
 }
