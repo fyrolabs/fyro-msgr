@@ -1,35 +1,40 @@
-package test_test
+package example
 
-import "github.com/fyrolabs/fyro-mailer/mail"
+import (
+	msgr "github.com/fyrolabs/fyro-mailer"
+	"github.com/fyrolabs/fyro-mailer/provider"
+)
 
 func previewLetter() {
-	mailer, _ := mail.NewMailer(mail.NewMailerOpts{
-		TemplatesDir:  "./templates",
+	messenger, _ := msgr.NewClient(msgr.ClientOpts{
+		TemplatesRoot: "./example/templates",
 		DefaultLocale: "en",
-		DefaultFrom:   "sender@example.org",
-		Provider: &mail.PostmarkProvider{
-			ServerToken: "AAAAA",
+		MailProvider: &provider.PostmarkProvider{
+			ServerToken: "",
 			TrackOpens:  true,
 		},
 	})
 
-	helloLetter := mail.RegisterLetterOpts{
-		Name:           "helloWorld",
-		ExtraTemplates: []string{},
+	userWelcome := msgr.AddMessageOpts{
+		Name: "userWelcome",
+		MailChannelOpts: &msgr.MailChannelOpts{
+			From: "noreply@example.org",
+		},
 	}
 
-	if err := mailer.RegisterLetter(helloLetter); err != nil {
+	if err := messenger.AddMessage(userWelcome); err != nil {
 		panic(err)
 	}
 
-	data := mail.MailData{
-		"Name": "John Doe",
+	data := msgr.MessageData{
+		"Name": "Bob Marley",
 	}
 
-	if err := mailer.Preview(mail.PreviewOpts{
-		LetterName: "helloWorld",
-		Locale:     "en", // or zh-cn
-		Data:       data,
+	if err := messenger.Send(msgr.SendOpts{
+		MessageName: "userWelcome",
+		MailTo:      "user@example.org",
+		Data:        data,
+		Locale:      "en", // Locale: "en"
 	}); err != nil {
 		panic(err)
 	}

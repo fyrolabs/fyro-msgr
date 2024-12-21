@@ -1,4 +1,4 @@
-package mail
+package provider
 
 import (
 	"context"
@@ -6,25 +6,12 @@ import (
 	"github.com/mrz1836/postmark"
 )
 
-type Provider interface {
-	Send(opts ProviderSendOpts) error
-}
-
-type ProviderSendOpts struct {
-	To       string
-	From     string
-	ReplyTo  string
-	Subject  string
-	HTMLBody string
-	TextBody string
-}
-
 type PostmarkProvider struct {
 	ServerToken string
 	TrackOpens  bool
 }
 
-func (p *PostmarkProvider) Send(opts ProviderSendOpts) error {
+func (p *PostmarkProvider) Send(opts MailProviderSendOpts) error {
 	email := postmark.Email{
 		From:       opts.From,
 		To:         opts.To,

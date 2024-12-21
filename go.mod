@@ -18,6 +18,5 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.4.1
 	github.com/vanng822/css v1.0.1 // indirect
-	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	golang.org/x/net v0.33.0 // indirect
 )
