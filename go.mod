@@ -1,4 +1,4 @@
-module github.com/fyrolabs/fyro-mailer
+module github.com/fyrolabs/fyro-msgr
 
 go 1.23.3
 
@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/fyrolabs/fyro-mailer v0.0.2
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v3 v3.0.1
 )
