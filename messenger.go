@@ -14,8 +14,8 @@ import (
 type Messenger struct {
 	messageMap    map[string]Message
 	templatesRoot string
-	defaultFrom   string
 	mailProvider  provider.MailProvider
+	mailOpts      *MailChannelOpts
 	smsProvider   provider.SMSProvider
 	defaultLocale language.Tag
 	layoutBundle  *i18n.Bundle
@@ -25,8 +25,9 @@ type Messenger struct {
 type ClientOpts struct {
 	// Path to email layout, locales, and templates
 	TemplatesRoot string
-	DefaultFrom   string
+	// Set the mail provider and default opts
 	MailProvider  provider.MailProvider
+	MailOpts      *MailChannelOpts
 	SMSProvider   provider.SMSProvider
 	DefaultLocale string
 	// Dynamic data to be used in the layout
@@ -58,8 +59,8 @@ func NewClient(opts ClientOpts) (*Messenger, error) {
 	return &Messenger{
 		messageMap:    map[string]Message{},
 		templatesRoot: opts.TemplatesRoot,
-		defaultFrom:   opts.DefaultFrom,
 		mailProvider:  opts.MailProvider,
+		mailOpts:      opts.MailOpts,
 		smsProvider:   opts.SMSProvider,
 		defaultLocale: lang, // Default locale
 		layoutData:    layoutData,
@@ -90,7 +91,7 @@ func (msgr *Messenger) AddMessage(opts AddMessageOpts) error {
 func (msgr *Messenger) getMessage(name string) (*Message, error) {
 	msg, exists := msgr.messageMap[name]
 	if !exists {
-		return nil, ErrInvalidKind
+		return nil, ErrInvalidMessage
 	}
 
 	return &msg, nil
@@ -122,6 +123,18 @@ func (msgr *Messenger) Send(opts SendOpts) error {
 			return err
 		}
 
+		// Use default from, unless message has its own
+		from := msgr.mailOpts.From
+		if msg.mailChannelOpts.From != "" {
+			from = msg.mailChannelOpts.From
+		}
+
+		// Use default replyTo, unless message has its own
+		replyTo := msgr.mailOpts.ReplyTo
+		if msg.mailChannelOpts.ReplyTo != "" {
+			replyTo = msg.mailChannelOpts.ReplyTo
+		}
+
 		content, err := msgr.Compose(ComposeOpts{
 			Message: *msg,
 			Channel: MailChannel,
@@ -135,8 +148,8 @@ func (msgr *Messenger) Send(opts SendOpts) error {
 
 		providerOpts := provider.MailProviderSendOpts{
 			To:       opts.MailTo,
-			From:     msg.mailChannelOpts.From,
-			ReplyTo:  msg.mailChannelOpts.ReplyTo,
+			From:     from,
+			ReplyTo:  replyTo,
 			Subject:  subject,
 			HTMLBody: content,
 		}
