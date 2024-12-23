@@ -11,14 +11,14 @@ import (
 type Message struct {
 	name            string
 	templatePath    string
-	mailChannelOpts *MailChannelOpts
+	mailChannelOpts MailChannelOpts
 	localeBundle    *i18n.Bundle
 }
 
 type NewMessageOpts struct {
 	name            string
 	templatesPath   string
-	mailChannelOpts *MailChannelOpts
+	mailChannelOpts MailChannelOpts
 	defaultLocale   language.Tag
 }
 

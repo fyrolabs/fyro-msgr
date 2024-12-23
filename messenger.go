@@ -69,8 +69,8 @@ func NewClient(opts ClientOpts) (*Messenger, error) {
 }
 
 type AddMessageOpts struct {
-	Name            string           // Must be unique
-	MailChannelOpts *MailChannelOpts // Email channel options
+	Name            string          // Must be unique
+	MailChannelOpts MailChannelOpts // Email channel options
 }
 
 func (msgr *Messenger) AddMessage(opts AddMessageOpts) error {
