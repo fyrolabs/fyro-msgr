@@ -1,12 +1,13 @@
 package example
 
 import (
-	msgr "github.com/fyrolabs/fyro-mailer"
-	"github.com/fyrolabs/fyro-mailer/provider"
+	msgr "github.com/fyrolabs/fyro-msgr"
+	"github.com/fyrolabs/fyro-msgr/preview"
+	"github.com/fyrolabs/fyro-msgr/provider"
 )
 
-func previewLetter() {
-	messenger, _ := msgr.NewClient(msgr.ClientOpts{
+func Preview() {
+	client, _ := msgr.NewClient(msgr.ClientOpts{
 		TemplatesRoot: "./example/templates",
 		DefaultLocale: "en",
 		MailProvider: &provider.PostmarkProvider{
@@ -17,12 +18,12 @@ func previewLetter() {
 
 	userWelcome := msgr.AddMessageOpts{
 		Name: "userWelcome",
-		MailChannelOpts: &msgr.MailChannelOpts{
+		MailChannelOpts: msgr.MailChannelOpts{
 			From: "noreply@example.org",
 		},
 	}
 
-	if err := messenger.AddMessage(userWelcome); err != nil {
+	if err := client.AddMessage(userWelcome); err != nil {
 		panic(err)
 	}
 
@@ -30,11 +31,14 @@ func previewLetter() {
 		"Name": "Bob Marley",
 	}
 
-	if err := messenger.Send(msgr.SendOpts{
+	if err := preview.PreviewMessage(client, preview.PreviewOpts{
 		MessageName: "userWelcome",
-		MailTo:      "user@example.org",
-		Data:        data,
-		Locale:      "en", // Locale: "en"
+		Channels: []msgr.Channel{
+			msgr.MailChannel, msgr.SMSChannel, msgr.PushChannel,
+		},
+		Data:   data,
+		Locale: "en",
+		OutDir: "./example/out",
 	}); err != nil {
 		panic(err)
 	}

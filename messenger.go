@@ -1,9 +1,8 @@
 package msgr
 
 import (
+	"errors"
 	"fmt"
-	"maps"
-	"os"
 	"path/filepath"
 
 	"github.com/fyrolabs/fyro-msgr/provider"
@@ -12,25 +11,29 @@ import (
 )
 
 type Messenger struct {
+	LayoutData    MessageData
 	messageMap    map[string]Message
 	templatesRoot string
 	mailProvider  provider.MailProvider
 	mailOpts      *MailChannelOpts
 	smsProvider   provider.SMSProvider
+	pushProviders *provider.PushProviders
 	defaultLocale language.Tag
 	layoutBundle  *i18n.Bundle
-	layoutData    MessageData
 }
 
 type ClientOpts struct {
 	// Path to email layout, locales, and templates
 	TemplatesRoot string
 	// Set the mail provider and default opts
-	MailProvider  provider.MailProvider
-	MailOpts      *MailChannelOpts
-	SMSProvider   provider.SMSProvider
+	MailProvider provider.MailProvider
+	MailOpts     *MailChannelOpts
+	// SMS options
+	SMSProvider provider.SMSProvider
+	// Push options
+	PushProviders *provider.PushProviders
 	DefaultLocale string
-	// Dynamic data to be used in the layout
+	// Fixed data to be used in the layout
 	LayoutData MessageData
 }
 
@@ -63,7 +66,7 @@ func NewClient(opts ClientOpts) (*Messenger, error) {
 		mailOpts:      opts.MailOpts,
 		smsProvider:   opts.SMSProvider,
 		defaultLocale: lang, // Default locale
-		layoutData:    layoutData,
+		LayoutData:    layoutData,
 		layoutBundle:  bundle,
 	}, nil
 }
@@ -88,7 +91,7 @@ func (msgr *Messenger) AddMessage(opts AddMessageOpts) error {
 	return nil
 }
 
-func (msgr *Messenger) getMessage(name string) (*Message, error) {
+func (msgr *Messenger) GetMessage(name string) (*Message, error) {
 	msg, exists := msgr.messageMap[name]
 	if !exists {
 		return nil, ErrInvalidMessage
@@ -99,14 +102,15 @@ func (msgr *Messenger) getMessage(name string) (*Message, error) {
 
 type SendOpts struct {
 	MessageName string
-	MailTo      string // If MailTo is defined, it will send email
-	SMSTo       string // If SMSTo is defined, it will send SMS
+	MailTo      string                // If MailTo is defined, it will send email
+	SMSTo       string                // If SMSTo is defined, it will send SMS
+	PushTo      []provider.PushDevice // If pushTo has devices, it will send via push
 	Data        MessageData
 	Locale      string
 }
 
 func (msgr *Messenger) Send(opts SendOpts) error {
-	msg, err := msgr.getMessage(opts.MessageName)
+	msg, err := msgr.GetMessage(opts.MessageName)
 	if err != nil {
 		return err
 	}
@@ -116,14 +120,10 @@ func (msgr *Messenger) Send(opts SendOpts) error {
 		locale = msgr.defaultLocale.String()
 	}
 
-	// Send via email
-	if opts.MailTo != "" {
-		subject, err := msg.MailSubject(locale, opts.Data)
-		if err != nil {
-			return err
-		}
+	// errors list for each send channel
+	var errs []error
 
-		// Use default from, unless message has its own
+	sendMail := func() error {
 		from := msgr.mailOpts.From
 		if msg.mailChannelOpts.From != "" {
 			from = msg.mailChannelOpts.From
@@ -135,34 +135,29 @@ func (msgr *Messenger) Send(opts SendOpts) error {
 			replyTo = msg.mailChannelOpts.ReplyTo
 		}
 
-		content, err := msgr.Compose(ComposeOpts{
+		contents, err := msgr.ComposeMail(ComposeMailOpts{
 			Message: *msg,
-			Channel: MailChannel,
-			Format:  RenderKindHTML,
-			Locale:  locale,
+			Locale:  opts.Locale,
 			Data:    opts.Data,
 		})
 		if err != nil {
 			return err
 		}
 
-		providerOpts := provider.MailProviderSendOpts{
+		providerOpts := provider.MailSendOpts{
 			To:       opts.MailTo,
 			From:     from,
 			ReplyTo:  replyTo,
-			Subject:  subject,
-			HTMLBody: content,
+			Subject:  contents.Subject,
+			HTMLBody: contents.HTMLBody,
 		}
 
 		return msgr.mailProvider.Send(providerOpts)
 	}
 
-	// Send via SMS
-	if opts.SMSTo != "" {
-		content, err := msgr.Compose(ComposeOpts{
+	sendSMS := func() error {
+		contents, err := msgr.ComposeSMS(ComposeSMSOpts{
 			Message: *msg,
-			Channel: SMSChannel,
-			Format:  RenderKindText,
 			Locale:  locale,
 			Data:    opts.Data,
 		})
@@ -171,90 +166,58 @@ func (msgr *Messenger) Send(opts SendOpts) error {
 		}
 
 		providerOpts := provider.SMSProviderSendOpts{
-			To:       opts.SMSTo,
-			TextBody: content,
+			To:   opts.SMSTo,
+			Body: contents.Body,
 		}
 
 		return msgr.smsProvider.Send(providerOpts)
 	}
 
-	return nil
+	sendPush := func() error {
+		contents, err := msgr.ComposePush(ComposePushOpts{
+			Message: *msg,
+			Locale:  locale,
+			Data:    opts.Data,
+		})
+		if err != nil {
+			return err
+		}
+
+		return msgr.pushProviders.Send(provider.PushProviderSendOpts{
+			Devices: opts.PushTo,
+			Title:   contents.Title,
+			Body:    contents.Body,
+		})
+	}
+
+	// Send via email
+	if opts.MailTo != "" {
+		if err := sendMail(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	// Send via SMS
+	if opts.SMSTo != "" {
+		if err := sendSMS(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	// Send via push
+	if opts.PushTo != nil && msgr.pushProviders != nil {
+		if err := sendPush(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func (msgr *Messenger) LayoutFile(channel Channel, format RenderFormat) string {
 	layout := filepath.Join(
 		msgr.templatesRoot,
-		fmt.Sprintf("layout_%s.%s.tmpl", channel.String(), format),
+		fmt.Sprintf("layout_%s.%s.tmpl", channel, format),
 	)
 	return layout
-}
-
-type ComposeOpts struct {
-	Message Message
-	Channel Channel
-	Format  RenderFormat
-	Locale  string
-	Data    MessageData
-}
-
-func (msgr *Messenger) Compose(opts ComposeOpts) (string, error) {
-	// Merge layout data with message data
-	data := maps.Clone(msgr.layoutData)
-	maps.Copy(data, opts.Data)
-
-	layoutTmplFile := msgr.LayoutFile(opts.Channel, opts.Format)
-	msgTmplFiles := opts.Message.TemplateFiles(opts.Channel, opts.Format)
-
-	tmplFiles := append([]string{layoutTmplFile}, msgTmplFiles...)
-
-	var content string
-	var err error
-
-	if opts.Format == RenderKindText {
-
-	} else if opts.Format == RenderKindHTML {
-		content, err = RenderHTML(RenderOpts{
-			Templates:     tmplFiles,
-			Data:          data,
-			Locale:        opts.Locale,
-			LayoutBundle:  msgr.layoutBundle,
-			MessageBundle: opts.Message.localeBundle,
-		})
-
-	} else {
-		return "", ErrInvalidFormat
-	}
-
-	return content, err
-}
-
-type PreviewOpts struct {
-	MessageName string
-	Data        MessageData
-	Locale      string
-}
-
-func (msgr *Messenger) Preview(opts PreviewOpts) error {
-	ltr, err := msgr.getMessage(opts.MessageName)
-	if err != nil {
-		return err
-	}
-
-	content, err := msgr.Compose(ComposeOpts{
-		Message: *ltr,
-		Locale:  opts.Locale,
-		Data:    opts.Data,
-	})
-	if err != nil {
-		return err
-	}
-
-	filePath := filepath.Join(
-		"previews", fmt.Sprintf("%s_%s.html", opts.MessageName, opts.Locale),
-	)
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		return err
-	}
-
-	return nil
 }

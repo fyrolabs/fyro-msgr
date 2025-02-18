@@ -43,27 +43,11 @@ func (msg *Message) Localizer(locale string) *i18n.Localizer {
 	return localizer
 }
 
-func (msg *Message) MailSubject(
-	locale string, data MessageData,
-) (string, error) {
-	localizer := msg.Localizer(locale)
-
-	subject, err := localizer.Localize(&i18n.LocalizeConfig{
-		MessageID:    "subject",
-		TemplateData: data,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return subject, nil
-}
-
 func (msg *Message) TemplateFiles(channel Channel, format RenderFormat) []string {
 	// TODO implement partials
 
 	index := filepath.Join(
-		msg.templatePath, fmt.Sprintf("index_%s.%s.tmpl", channel.String(), format),
+		msg.templatePath, fmt.Sprintf("index_%s.%s.tmpl", channel, format),
 	)
 
 	return []string{index}

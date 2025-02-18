@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message Preview</title>
+</head>
+<body>
+  <h1>Message Preview</h1>
+
+  <div>
+    <p>Subject: {{ .Subject }}</p>
+  </div>
+
+  <div>
+    <h2>HTML Message</h2>
+    <iframe srcdoc="{{ .HTMLBody }}" width="100%" height="500px"></iframe>
+  </div>
+
+  <div>
+    <h2>Text Message</h2>
+    <pre>{{ .TextBody }}</pre>
+  </div>
+</body>
+</html>

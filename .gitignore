@@ -24,6 +24,8 @@ Footer
 
 # Custom
 __debug_bin*
+example/out/*
+!example/out/.keep
 
 .env
 .vscode/settings.json

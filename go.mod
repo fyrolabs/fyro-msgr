@@ -9,9 +9,12 @@ require (
 
 require (
 	github.com/fyrolabs/fyro-mailer v0.0.2
+	github.com/sideshow/apns2 v0.25.0
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+require github.com/golang-jwt/jwt/v4 v4.4.1 // indirect
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.0 // indirect

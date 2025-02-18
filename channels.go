@@ -1,20 +1,12 @@
 package msgr
 
-type Channel int
+type Channel string
 
 const (
-	MailChannel Channel = iota
-	SMSChannel
+	MailChannel Channel = "mail"
+	SMSChannel  Channel = "sms"
+	PushChannel Channel = "push"
 )
-
-var channelMap = map[Channel]string{
-	MailChannel: "mail",
-	SMSChannel:  "sms",
-}
-
-func (c Channel) String() string {
-	return channelMap[c]
-}
 
 type MailChannelOpts struct {
 	From    string

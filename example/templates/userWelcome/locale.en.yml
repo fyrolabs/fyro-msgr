@@ -1,2 +1,3 @@
-subject: Hello, {{ .Name }}!
+mail_subject: Hello, {{ .Name }}!
+push_title: Hello, {{ .Name }}!
 greeting: Welcome, {{ . }}!

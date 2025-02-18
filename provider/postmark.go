@@ -11,7 +11,7 @@ type PostmarkProvider struct {
 	TrackOpens  bool
 }
 
-func (p *PostmarkProvider) Send(opts MailProviderSendOpts) error {
+func (p *PostmarkProvider) Send(opts MailSendOpts) error {
 	email := postmark.Email{
 		From:       opts.From,
 		To:         opts.To,
