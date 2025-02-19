@@ -137,8 +137,8 @@ func (msgr *Messenger) ComposePush(opts ComposePushOpts) (*PushContents, error) 
 	}
 
 	// Body
-	layoutTmplFile := msgr.LayoutFile(SMSChannel, RenderKindText)
-	msgTmplFiles := opts.Message.TemplateFiles(MailChannel, RenderKindText)
+	layoutTmplFile := msgr.LayoutFile(PushChannel, RenderKindText)
+	msgTmplFiles := opts.Message.TemplateFiles(PushChannel, RenderKindText)
 
 	tmplFiles := append([]string{layoutTmplFile}, msgTmplFiles...)
 
