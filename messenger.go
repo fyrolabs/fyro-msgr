@@ -65,6 +65,7 @@ func NewClient(opts ClientOpts) (*Messenger, error) {
 		mailProvider:  opts.MailProvider,
 		mailOpts:      opts.MailOpts,
 		smsProvider:   opts.SMSProvider,
+		pushProviders: opts.PushProviders,
 		defaultLocale: lang, // Default locale
 		LayoutData:    layoutData,
 		layoutBundle:  bundle,

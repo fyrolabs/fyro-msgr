@@ -16,10 +16,14 @@ type ApplePushProvider struct {
 }
 
 func (p *ApplePushProvider) Send(opts PushSendOpts) error {
-	pl := payload.NewPayload().Alert(map[string]string{
-		"subtitle": opts.Title,
-		"body":     opts.Message,
-	})
+	alertData := map[string]string{"body": opts.Message}
+
+	if opts.Title != "" {
+		// Add subtitle if it is set
+		alertData["subtitle"] = opts.Title
+	}
+
+	pl := payload.NewPayload().Alert(alertData)
 
 	authKey, err := token.AuthKeyFromFile(p.PrivateKey)
 	if err != nil {

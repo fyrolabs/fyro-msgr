@@ -1,6 +1,7 @@
 package msgr
 
 import (
+	"errors"
 	"maps"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -132,7 +133,9 @@ func (msgr *Messenger) ComposePush(opts ComposePushOpts) (*PushContents, error) 
 		MessageID:    "push_title",
 		TemplateData: data,
 	})
-	if err != nil {
+
+	var errMessageNotFound *i18n.MessageNotFoundErr
+	if err != nil && !errors.As(err, &errMessageNotFound) {
 		return nil, err
 	}
 
