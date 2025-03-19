@@ -78,7 +78,9 @@ func (pp *PushProviders) Send(opts PushProviderSendOpts) error {
 		}
 
 		if err != nil {
-			errs = append(errs, &PushSendError{DeviceToken: device.Token})
+			errs = append(
+				errs, &PushSendError{DeviceToken: device.Token, ProviderError: err},
+			)
 		}
 	}
 
